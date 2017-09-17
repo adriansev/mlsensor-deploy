@@ -28,8 +28,8 @@ MLSENSOR_FOUND_HOME=$(ps -C java -o args= | awk '/MLSENSOR_HOME/ { for ( x = 1; 
 ## backup old/previous version
 [[ -d "${MLSENSOR_HOME}" ]] && mv -v ${MLSENSOR_HOME} ${MLSENSOR_HOME}_$(date +%Y%m%d_%k%M%S)
 
-${CURL} -o ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_LOC}/bin/MLSensor
-${CURL} -o ${MLSENSOR_HOME}/bin/mlsensor_config ${MLSENSOR_LOC}/bin/mlsensor_config
+${CURL} -o ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_LOC}/usr/bin/MLSensor
+${CURL} -o ${MLSENSOR_HOME}/bin/mlsensor_config ${MLSENSOR_LOC}/usr/bin/mlsensor_config
 chmod +x ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_HOME}/bin/mlsensor_config
 
 ${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor_env ${MLSENSOR_LOC}/etc/mlsensor/mlsensor_env
