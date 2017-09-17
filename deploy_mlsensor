@@ -32,8 +32,8 @@ ${CURL} -o ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_LOC}/bin/MLSensor
 ${CURL} -o ${MLSENSOR_HOME}/bin/mlsensor_config ${MLSENSOR_LOC}/bin/mlsensor_config
 chmod +x ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_HOME}/bin/mlsensor_config
 
-${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor_env ${MLSENSOR_LOC}/etc/mlsensor_env
-${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor.properties.tmp ${MLSENSOR_LOC}/etc/mlsensor.properties.tmp
+${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor_env ${MLSENSOR_LOC}/etc/mlsensor/mlsensor_env
+${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor.properties.tmp ${MLSENSOR_LOC}/etc/mlsensor/mlsensor.properties.tmp
 cp ${MLSENSOR_HOME}/etc/mlsensor.properties.tmp ${MLSENSOR_HOME}/etc/mlsensor.properties
 
 ${CURL} -o ${MLSENSOR_HOME}/lib/apmon.jar ${MLSENSOR_HOME}/lib/apmon.jar
