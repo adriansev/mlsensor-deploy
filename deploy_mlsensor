@@ -1,74 +1,25 @@
 #!/bin/bash
 
-##   CHECK AND ESTABLISH THE SE NAME
-
 SE_NAME=$1
 
 ## if argument null check if there is env variable ALICEXRD_SE_NAME
 [[ -z "${SE_NAME}" ]] && SE_NAME=${ALICEXRD_SE_NAME}
 
-## have the ports of possible xrootd servers running; to be used to query the servers
-XRD_PORT=$(ss -ltnp | awk '/xrootd/ { n=split($4,listening,":");print listening[n];}')
+DOWNLOAD_LOC="https://raw.githubusercontent.com/adriansev/mlsensor-deploy/"
+BRANCH="master"
+MLSENSOR_LOC="${DOWNLOAD_LOC}/${BRANCH}/"
 
-## if still not defined check and query local running xrootd server
-if [[ -z "${SE_NAME}" ]] ; then
-    ## if server port(s) found try each one until SE_NAME is defined (if manager+server first one will be the manager)
-    for PORT in "${XRD_PORT}"; do [[ -z "${SE_NAME}" ]] && SE_NAME=$(/usr/bin/xrdfs localhost:${PORT} query config sitename); done
-fi
-
-[[ -z "${SE_NAME}" ]] && { echo "SE name is not defined; use it as argument, export ALICEXRD_SE_NAME, or define it the configuration of _RUNNING_ xrootd server" && exit 10; }
-
-echo "Found SE_NAME=${SE_NAME}"
-
-## Get SE info from MonaLisa and check if the SE name is valid
-se_info=$(/usr/bin/curl -fsSLk http://alimonitor.cern.ch/services/se.jsp?se=${SE_NAME})
-[[ "${se_info}" == "null" ]] && { echo "The stated SE name ${SE_NAME} is not found to be valid by MonaLisa" && exit 10; }
+CURL="/usr/bin/curl -fsSLk"
 
 ## default location $HOME/MLSensor IF NOT DEFINED $MLSENSOR_HOME
 MLSENSOR_HOME=${MLSENSOR_HOME:-$HOME/MLSensor}
 
-#####################################
-#####################################
-
-##   functions for configurations editing
-myreplace       () { a=$(echo $1 | sed 's/\//\\\//g') ; b=$(echo $2 | sed 's/\//\\\//g') ; cat | sed "s/$a/$b/g" ; }
-replace_in_file () { cat $1 | myreplace "$2" "$3" > $1.new ; rm -f $1 ; mv $1.new $1 ; }
-
-###############################################################################################
-###   Network prerequisites for install
-
-## Network information and validity checking
-MYNET=$(/usr/bin/curl -fsSLk http://alimonitor.cern.ch/services/ip.jsp)
-MYIP=$(echo "${MYNET}" | /bin/awk '/IP/ {gsub("IP:","",$1); print $1}')
-REVERSE=$(echo "${MYNET}" | /bin/awk '/FQDN/ {gsub("FQDN:","",$1); print $1}')
-
-## make sure the exit public ip is locally configured
-ip_list=$(/sbin/ip addr show scope global permanent up | /bin/awk '/inet/ {split ($2,ip,"/"); print ip[1]}')
-found_at=$(expr index "${ip_list}" "$MYIP")
-[[ "${found_at}" == "0" ]] && { echo "Server without public/rutable ip. No NAT schema supported at this moment" && exit 10; }
-
-## what is my local set hostname
-[[ -z "${myhost}" ]] && myhost=$(/bin/hostname -f)
-[[ -z "${myhost}" ]] && myhost=$(/bin/hostname)
-[[ -z "${myhost}" ]] && echo "Cannot determine hostname. Aborting." && exit 1
-
-## make sure the locally configured hostname is the same with the external one
-[[ "${myhost}" != "${REVERSE}" ]] && { echo "detected hostname $myhost does not corespond to reverse dns name $REVERSE" && exit 10; }
-echo "The fully qualified hostname appears to be ${myhost}"
-
-## Find information about site from ML
-MONALISA_IP=$(/usr/bin/curl -s http://alimonitor.cern.ch/services/getClosestSite.jsp?ml_ip=true | /bin/awk -F, '{print $1}')
-MONALISA_FQDN=$(/usr/bin/host ${MONALISA_IP} | /bin/awk '{ print substr ($NF,1,length($NF)-1);}')
-
-MANAGERHOST=$(echo "${se_info}" | /bin/awk -F": " '/seioDaemons/ { gsub ("root://","",$2);gsub (":1094","",$2) ; print $2 }' )
-
 ###############################################################################################
 ###   DEPLOY MLSensor
-cd $(/usr/bin/dirname ${MLSENSOR_HOME})
 
-## first download the MLSensor
-rm -rf /tmp/MLSensor.tgz
-/usr/bin/curl -fsSL -o /tmp/MLSensor.tgz http://monalisa.cern.ch/MLSensor/MLSensor.tgz || { echo "Could not download MLSensor.tgz" && exit 1; }
+## make sure the destination is in place
+mkdir -p ${MLSENSOR_HOME}
+cd $(/usr/bin/dirname ${MLSENSOR_HOME})
 
 ## if MLSensor in place, try to stop it
 MLSENSOR_FOUND_HOME=$(ps -C java -o args= | awk '/MLSENSOR_HOME/ { for ( x = 1; x <= NF; x++ ) { if ($x ~ "-DMLSENSOR_HOME"){ n=split($x,home,"="); print home[n];}}}')
@@ -77,10 +28,17 @@ MLSENSOR_FOUND_HOME=$(ps -C java -o args= | awk '/MLSENSOR_HOME/ { for ( x = 1; 
 ## backup old/previous version
 [[ -d "${MLSENSOR_HOME}" ]] && mv -v ${MLSENSOR_HOME} ${MLSENSOR_HOME}_$(date +%Y%m%d_%k%M%S)
 
-## make sure the destination is in place and extract there the MLSensor
-mkdir -p ${MLSENSOR_HOME}
+${CURL} -o ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_LOC}/bin/MLSensor
+${CURL} -o ${MLSENSOR_HOME}/bin/mlsensor_config ${MLSENSOR_LOC}/bin/mlsensor_config
+chmod +x ${MLSENSOR_HOME}/bin/MLSensor ${MLSENSOR_HOME}/bin/mlsensor_config
 
-tar -C ${MLSENSOR_HOME}/ --strip-components=1 -xf /tmp/MLSensor.tgz
+${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor_env ${MLSENSOR_LOC}/etc/mlsensor_env
+${CURL} -o ${MLSENSOR_HOME}/etc/mlsensor.properties.tmp ${MLSENSOR_LOC}/etc/mlsensor.properties.tmp
+cp ${MLSENSOR_HOME}/etc/mlsensor.properties.tmp ${MLSENSOR_HOME}/etc/mlsensor.properties
+
+${CURL} -o ${MLSENSOR_HOME}/lib/apmon.jar ${MLSENSOR_HOME}/lib/apmon.jar
+${CURL} -o ${MLSENSOR_HOME}/lib/FarmMonitor.jar ${MLSENSOR_HOME}/lib/FarmMonitor.jar
+${CURL} -o ${MLSENSOR_HOME}/lib/MLSensor.jar ${MLSENSOR_HOME}/lib/MLSensor.jar
 
 ########################################
 ###   Configure mlsensor_env - java  ###
@@ -107,70 +65,10 @@ else
 fi
 
 ###############################################################################################
-## INFORMATION ON THE SITE- based on MonaLisa information
+## Configure the mlsensor.properties
+echo "Configuring mlsensor.properties"
+echo ${MLSENSOR_HOME}/bin/mlsensor_config ${MLSENSOR_HOME}/etc/mlsensor.properties ${SE_NAME}
+${MLSENSOR_HOME}/bin/mlsensor_config ${MLSENSOR_HOME}/etc/mlsensor.properties ${SE_NAME}
 
-## Find information about site from ML
-se_info=$(/usr/bin/curl -fsSLk http://alimonitor.cern.ch/services/se.jsp?se=${SE_NAME})
-MANAGERHOST=$(echo "${se_info}" | /bin/awk -F": " '/seioDaemons/ { gsub ("root://","",$2);gsub (":1094","",$2) ; print $2 }' )
+echo "Now run ${MLSENSOR_HOME}/bin/MLSensor start"
 
-MONALISA_HOST_INFO=$(/usr/bin/host $(/usr/bin/curl -s http://alimonitor.cern.ch/services/getClosestSite.jsp?ml_ip=true | /bin/awk -F, '{print $1}' ) )
-MONALISA_HOST=$(echo "${MONALISA_HOST_INFO}" | /bin/awk '{ print substr ($NF,1,length($NF)-1);}' )
-MONALISA_PORT="8884"
-
-ML_DEST="${MONALISA_HOST}:${MONALISA_PORT}"
-
-## WHAT IS MY ROLE? ; we are interested only if i am manager
-is_manager=""
-
-## am i the top manager defined in ML
-[[ "${myhost}" == "${MANAGERHOST}" ]] && is_manager="1"
-
-## maybe i am a second tier manager?
-if [[ -z "${is_manager}" ]]; then
-    ## if ports (multiple servers possible) we query all to check if one is manager
-    for PORT in "${XRD_PORT}"; do [[ -z "${is_manager}" ]] && ROLE=$(/usr/bin/xrdfs localhost:${PORT} query config role | tr -d '[:space:]'); [[ "${ROLE}" == "manager" ]] && is_manager="1" ; done
-fi
-
-## maybe the manager is an alias to multiple redundant ips
-MANAGER_IP_LIST=$(host ${MANAGERHOST} | awk '{print $NF;}')
-
-if (( $(echo ${MANAGER_IP_LIST} | wc -l) > 1 )) ; then
-    ## is my ip in manager ip list
-    [[ "${MANAGER_IP_LIST}" =~ "${MYIP}" ]] && is_manager="1"
-fi
-
-#########################################
-###   Configure mlsensor.propreties   ###
-#########################################
-
-## Set the target MonaLisa aggregator
-replace_in_file ${MLSENSOR_HOME}/etc/mlsensor.properties "localhost:56884" "${ML_DEST}"
-replace_in_file ${MLSENSOR_HOME}/etc/mlsensor.properties "cluster.name=MLSensor"      "cluster.name=${SE_NAME}"
-replace_in_file ${MLSENSOR_HOME}/etc/mlsensor.properties "cluster.name.dynamic=true"  "cluster.name.dynamic=false"
-replace_in_file ${MLSENSOR_HOME}/etc/mlsensor.properties "cluster.name.suffix=_Nodes" "cluster.name.suffix=_xrootd_Nodes"
-
-## add specific xrootd monitoring to MLSensor
-(
-echo
-echo "# Be compatible with legacy Perl xrootd monitoring companion"
-echo "rewrite.parameter.names=true"
-echo "cluster.name.suffix.monXrdSpace=_manager_xrootd_Services"
-echo
-echo "# Run the disk space checking every 5 minutes"
-echo "monXrdSpace.execDelay=300"
-echo
-echo "# Change this to the full path to xrd if it cannot be found in PATH, and replace 1094 with redirector port number"
-echo "lia.Monitor.modules.monXrdSpace.args=xrd 1094"
-) >> ${MLSENSOR_HOME}/etc/mlsensor.properties
-
-if [[ "${is_manager}" == "1" ]] ; then
-    (
-    echo
-    echo "# Monitor xrootd disk space usage"
-    echo "# ************* IMPORTANT: only enable the following line on the redirector itself"
-    echo "mlsensor.modules=monXrdSpace"
-    ) >> ${MLSENSOR_HOME}/etc/mlsensor.properties
-fi
-
-echo "!!!!!!! CHECK MLSensor/etc/mlsensor.properties to be sure that settings are ok!!!!!!!!!!!!"
-echo "and then run ${MLSENSOR_HOME}/bin/MLSensor start"
