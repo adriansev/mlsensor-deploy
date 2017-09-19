@@ -1,0 +1,82 @@
+#!/bin/bash
+
+#       /etc/rc.d/init.d/mlsensord
+#
+#       MLSensor agent for sending machine data to MonaLisa
+# chkconfig: 2345 20 80
+# description[en]: MLSensor agent for sending machine data to MonaLisa
+# processname: mlsensord
+# config: /etc/mlsensor/mlsensor.properties autoreload
+# pidfile: /var/run/mlsensord.pid
+
+
+# Source function library.
+. /etc/init.d/functions
+
+RETVAL="0"
+MLCFGDIR="/etc/mlsensor/"
+ML_ENV="${MLCFGDIR}/mlsensor_env"
+ML_CFG="${MLCFGDIR}/mlsensor.properties"
+LOGFILE="/var/log/MLSensor.log"
+LOCKFILE="/var/lock/subsys/mlsensord"
+PIDFILE="/var/run/mlsensord.pid"
+
+MLSENSOR_HOME="/var/tmp/mlsensor/"
+/bin/mkdir -p ${MLSENSOR_HOME}
+
+ML_JAR_DIR="/usr/java/mlsensor/"
+
+[[ -f ${ML_ENV} ]] && source ${ML_ENV}
+
+
+JAVA_ARG="-Xms16m -Xmx32m \
+-DMLSENSOR_HOME=${MLSENSOR_HOME} \
+-Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
+-Dlia.Monitor.ConfigURL=file:${ML_CFG} -jar ${ML_JAR_DIR}/MLSensor.jar"
+
+start() {
+        echo -n "Starting MLSensor : "
+        daemon --user root --pidfile ${PIDFILE} java "${JAVA_ARG}" &> $LOGFILE
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && touch $LOCKFILE
+        echo
+        return $RETVAL
+}
+
+stop() {
+        echo -n "Shutting down <servicename>: "
+        killproc -p ${PIDFILE}
+        rm -f $LOCKFILE
+        return $RETVAL
+}
+
+version() { java -Xmx2m -Xms2m -jar ${ML_JAR_DIR}/MLSensor.jar -version ;}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status -p ${PIDFILE}
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    reload)
+        stop
+        start
+        ;;
+    version)
+        version
+        ;;
+    *)
+        echo "Usage: mlsensord {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $?
+
