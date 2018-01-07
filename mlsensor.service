@@ -1,0 +1,19 @@
+[Unit]
+Description=MonaLisa Monitoring Sensor
+After=multi-user.target
+
+[Service]
+Type=simple
+SyslogIdentifier=mlsensor
+StandardOutput=/var/log/mlsensor.log
+StandardError=/var/log/mlsensor.log
+PIDFile=/var/run/mlsensor.pid
+AssertPathExists=/etc/mlsensor/mlsensor.properties
+WorkingDirectory=/tmp
+
+ExecStart=/usr/bin/java -Xms16m -Xmx32m -DMLSENSOR_HOME=/tmp/ -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
+-Dlia.Monitor.ConfigURL=file:/etc/mlsensor/mlsensor.properties -jar /usr/share/java/mlsensor/MLSensor.jar
+
+[Install]
+WantedBy=multi-user.target
+

@@ -14,7 +14,13 @@ Group:		System Environment/Daemons
 Source0: 	%{name}-%{version}.tar.gz
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+BuildArch:  noarch
+
 Requires: java >= 1.6.0
+
+%if %{use_systemd} == 1
+BuildRequires: systemd
+%endif
 
 %description
 MLSensor agent for sending monitoring data to MonaLisa service
@@ -22,38 +28,42 @@ MLSensor agent for sending monitoring data to MonaLisa service
 %prep
 %setup -q
 
-%build
-
 %install
 rm -rf %{buildroot}
 
-mkdir -p %{buildroot}/%{_javadir}
 mkdir -p %{buildroot}/%{_sysconfdir}/%{name}
-mkdir -p %{buildroot}/%{_initddir}
-
 cp mlsensor_etc/*  %{buildroot}/%{_sysconfdir}/%{name}/
+
+mkdir -p %{buildroot}/%{_javadir}/%{name}/
 cp mlsensor_jars/* %{buildroot}/%{_javadir}/%{name}/
-cp bin/*           %{buildroot}/%{_bindir}/
 
+mkdir -p %{buildroot}/%{_bindir}/
+cp bin/* %{buildroot}/%{_bindir}/
 
-# For Sysv
+%if %{use_systemd} == 1
+mkdir -p %{buildroot}/%{_unitdir}/
+cp mlsensor.service %{buildroot}/%{_unitdir}/
+%else
+mkdir -p %{buildroot}/%{_initddir}
 cp mlsensord %{buildroot}/%{_initddir}/
-
-# For systemd
-## sed -e "s/__DESCRIPTION__/%{name}/" -e "s|__JAR__|%{_datadir}/%{name}/%{name}.jar|" -e "s|__USER__|%{name}|" -e "s|__CONFIGFILE__|%{_sysconfdir}/%{name}/application.properties|" < systemd/myservice.service.template > systemd/%{name}.service
-## cp systemd/%{name}.service %{buildroot}/usr/lib/systemd/system/%{name}.service
+%endif
 
 %clean
 rm -rf %{buildroot}
 
-
-%files -f RPM-FILE-LIST
+%files
 %defattr(-,root,root)
-%config %{_sysconfdir}/%{name}/mlsensor_env
-%config %{_sysconfdir}/%{name}/mlsensor.properties.tmp
-%{_javadir}/%{name}/*.jar
+%config %{_sysconfdir}/%{name}/*
+%{_javadir}/%{name}/*
+%{_bindir}/*
 
-
+%if %{use_systemd} == 1
+%{_unitdir}/*
+%ghost %{_initddir}/*
+%else
+%{_initddir}/*
+%ghost %{_unitdir}/*
+%endif
 
 %changelog
 * Sun Sep 17 2017 adrian <adrian.sevcenco@cern.ch> - MLSensor

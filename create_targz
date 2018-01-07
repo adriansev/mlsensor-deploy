@@ -4,15 +4,14 @@
 
 VER=$1
 
-DIR="MLSensor-"${VER}
+DIR="mlsensor-"${VER}
 
 rm -rf ${DIR}.tar.gz ${DIR}
 
 mkdir ${DIR}
 cp --parents -r bin mlsensord mlsensor.service mlsensor_etc mlsensor_jars mlsensor.spec ${DIR}/
 
-cd ${DIR}
-tar czf ../${DIR}.tar.gz *
+tar czf ${DIR}.tar.gz ${DIR}
 
 rm -rf ${DIR}
 

@@ -15,7 +15,6 @@
 
 RETVAL="0"
 MLCFGDIR="/etc/mlsensor/"
-ML_ENV="${MLCFGDIR}/mlsensor_env"
 ML_CFG="${MLCFGDIR}/mlsensor.properties"
 LOGFILE="/var/log/MLSensor.log"
 LOCKFILE="/var/lock/subsys/mlsensord"
@@ -24,10 +23,7 @@ PIDFILE="/var/run/mlsensord.pid"
 MLSENSOR_HOME="/var/tmp/mlsensor/"
 /bin/mkdir -p ${MLSENSOR_HOME}
 
-ML_JAR_DIR="/usr/java/mlsensor/"
-
-[[ -f ${ML_ENV} ]] && source ${ML_ENV}
-
+ML_JAR_DIR="/usr/share/java/mlsensor/"
 
 JAVA_ARG="-Xms16m -Xmx32m \
 -DMLSENSOR_HOME=${MLSENSOR_HOME} \
@@ -35,6 +31,8 @@ JAVA_ARG="-Xms16m -Xmx32m \
 -Dlia.Monitor.ConfigURL=file:${ML_CFG} -jar ${ML_JAR_DIR}/MLSensor.jar"
 
 start() {
+        [[ ! -e ${ML_CFG} ]] && { echo "Configuration file ${ML_CFG} not found! Use mlsensor_config from within ${ML_CFG}"}
+
         echo -n "Starting MLSensor : "
         daemon --user root --pidfile ${PIDFILE} java "${JAVA_ARG}" &> $LOGFILE
         RETVAL=$?
