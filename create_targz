@@ -9,10 +9,10 @@ DIR="MLSensor-"${VER}
 rm -rf ${DIR}.tar.gz ${DIR}
 
 mkdir ${DIR}
-cp --parents -r usr/bin/mlsensor_config etc/rc.d/init.d/mlsensord etc/mlsensor/mlsensor_env etc/mlsensor/mlsensor.properties.tmp lib/ ${DIR}/
+cp --parents -r bin mlsensord mlsensor.service mlsensor_etc mlsensor_jars mlsensor.spec ${DIR}/
 
-
-
-tar czf ${DIR}.tar.gz ${DIR}
+cd ${DIR}
+tar czf ../${DIR}.tar.gz *
 
 rm -rf ${DIR}
+
