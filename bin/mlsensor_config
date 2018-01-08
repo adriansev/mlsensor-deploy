@@ -13,15 +13,19 @@ local VALUE="$3"
 
 help () {
 echo "Required arguments are : "
-echo "arg1 = the configuration file - mlsensor.properties"
+echo "arg1 = the configuration file - mlsensor.properties.template"
 echo "arg2 = the name of the storage cluster as seen in MonaLisa - ALICE::SOME_NAME::FILE"
 }
 
 [[ -z "$1" ]] && { help && exit 1; }
 
 ## first argument is the configuration file
-CFG=$1
-[[ -e ${CFG} ]] && echo "Config file is : ${CFG}" || { echo "Could not find configuration file" && exit; }
+TEMPLATE=$1
+[[ -e ${TEMPLATE} ]] && echo "Config template file is : ${TEMPLATE}" || { echo "Could not find configuration template file" && exit; }
+
+CFG="$(/usr/bin/dirname ${TEMPLATE})/$(/bin/basename ${TEMPLATE} .tmp)"
+
+/bin/cp ${TEMPLATE} ${CFG}
 
 CFG_PATH=$(readlink -f ${CFG})
 
@@ -38,7 +42,7 @@ if [[ -z "${SE_NAME}" ]] && [[ -e /usr/bin/xrdfs ]] ; then
     XRD_PORT=$(ss -ltnp | awk '/xrootd/ { n=split($4,listening,":");print listening[n];}')
 
     ## if server port(s) found try each one until SE_NAME is defined (if manager+server first one will be the manager)
-    for PORT in "${XRD_PORT}"; do 
+    for PORT in "${XRD_PORT}"; do
         [[ -z "${SE_NAME}" ]] && SE_NAME=$(/usr/bin/xrdfs localhost:${PORT} query config sitename);
     done
 fi
@@ -110,7 +114,7 @@ if [[ -z "${is_manager}" ]]; then
     XRD_PORT=$(ss -ltnp | awk '/xrootd/ { n=split($4,listening,":");print listening[n];}')
 
     ## if ports (multiple servers possible) we query all to check if one is manager
-    for PORT in "${XRD_PORT}"; do 
+    for PORT in "${XRD_PORT}"; do
         [[ -z "${is_manager}" ]] && ROLE=$(/usr/bin/xrdfs localhost:${PORT} query config role | tr -d '[:space:]'); [[ "${ROLE}" == "manager" ]] && is_manager="1" ;
     done
 fi

@@ -17,6 +17,9 @@ BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:  noarch
 
 Requires: java >= 1.6.0
+Requires: curl
+Requires: bind-utils
+Requires: xrootd-client
 
 %if %{use_systemd} == 1
 BuildRequires: systemd
