@@ -1,4 +1,3 @@
-
 mlsensor.apmon.destinations = localhost:56884
 
 ############### Format of the data to send #############################
@@ -17,7 +16,6 @@ cluster.name.suffix=_Nodes
 # append a module-dependent cluster name suffix
 cluster.name.dynamic=true
 
-
 ################ Logging configuration ##################################
 ##
 ## How much logging info
@@ -25,9 +23,7 @@ cluster.name.dynamic=true
 ## MAX is .level = ALL
 ##
 ## Other values for this parameter can be: SEVERE, WARNING, CONFIG, INFO, FINE, FINER, FINEST
-## Please notice that the last two options are used only for debugging and generates large
-## output!
-##
+## Please notice that the last two options are used only for debugging and generates large output!
 ##
 ## this option is better to be left as it is. Please notice the dot before level .
 .level = OFF
@@ -37,7 +33,7 @@ mlsensor.level = INFO
 ###
 #monDiskIOStat config section
 ###
-monDiskIOStat.configFile=${MLSENSOR_HOME}/etc/mlsensor.properties
+monDiskIOStat.configFile=/etc/mlsensor.properties
 
 #allowedDevices=
 #deniedDevices=
@@ -47,8 +43,7 @@ monDiskIOStat.configFile=${MLSENSOR_HOME}/etc/mlsensor.properties
 ## If you wold like to enable MonALISA to "logrotate" it's logs
 ## please comment the upper 3 lines and uncomment the following ones
 ##
-## This will create 4 files that will be logrotated, after reaching
-## the size limit
+## This will create 4 files that will be logrotated, after reaching the size limit
 ##
 handlers= java.util.logging.FileHandler
 java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
@@ -61,7 +56,7 @@ java.util.logging.FileHandler.count = 4
 
 #Whether should append at the end of a file log or start with a new one
 java.util.logging.FileHandler.append = true
-java.util.logging.FileHandler.pattern = MLSensor%g.log
+java.util.logging.FileHandler.pattern = /var/log/mlsensor/MLSensor%g.log
 
 ## logging to stdout and stderr options
 ## MonaLisa uses standard logging included since java 1.4
