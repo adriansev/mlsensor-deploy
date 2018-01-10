@@ -16,6 +16,8 @@ BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildArch:  noarch
 
+Requires(pre): shadow-utils
+
 Requires: java >= 1.6.0
 Requires: curl
 Requires: bind-utils
@@ -25,8 +27,20 @@ Requires: xrootd-client
 BuildRequires: systemd
 %endif
 
+%define USER mlsensor
+%define GROUP mlsensor
+%define HOMEDIR /home/%{USER}
+
 %description
 MLSensor agent for sending monitoring data to MonaLisa service
+
+%pre
+getent group %{GROUP} >/dev/null || groupadd -r %{GROUP}
+getent passwd %{USER} >/dev/null || \
+    useradd -r -g %{GROUP} -d %{HOMEDIR} -s /sbin/nologin \
+    -c "MLSensor agent account" %{USER}
+exit 0
+
 
 %prep
 %setup -q

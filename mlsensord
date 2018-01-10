@@ -3,9 +3,10 @@
 #       /etc/rc.d/init.d/mlsensord
 #
 #       MLSensor agent for sending machine data to MonaLisa
-# chkconfig: 2345 20 80
+
 # description[en]: MLSensor agent for sending machine data to MonaLisa
 # processname: mlsensord
+# chkconfig: 2345 20 80
 # config: /etc/mlsensor/mlsensor.properties autoreload
 # pidfile: /var/run/mlsensord.pid
 
@@ -14,27 +15,37 @@
 . /etc/init.d/functions
 
 RETVAL="0"
+USER="mlsensor"
+MLSENSOR_HOME="/home/${USER}/"
+
 MLCFGDIR="/etc/mlsensor/"
 ML_CFG="${MLCFGDIR}/mlsensor.properties"
-LOGFILE="/var/log/MLSensor.log"
+
+LOGDIR="/var/log/mlsensor/"
 LOCKFILE="/var/lock/subsys/mlsensord"
 PIDFILE="/var/run/mlsensord.pid"
-
-MLSENSOR_HOME="/var/tmp/mlsensor/"
-/bin/mkdir -p ${MLSENSOR_HOME}
 
 ML_JAR_DIR="/usr/share/java/mlsensor/"
 
 JAVA_ARG="-Xms16m -Xmx32m \
 -DMLSENSOR_HOME=${MLSENSOR_HOME} \
 -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
--Dlia.Monitor.ConfigURL=file:${ML_CFG} -jar ${ML_JAR_DIR}/MLSensor.jar"
+-Djava.util.logging.FileHandler.pattern=${LOGDIR}/MLSensor%g.log \
+-Dlia.Monitor.ConfigURL=file:${ML_CFG} \
+-jar ${ML_JAR_DIR}/MLSensor.jar"
+
+JAVA=$(/usr/bin/which java)
+
+version() {
+        [[ -z "{JAVA}" ]] && { echo "java executable not found; check with \"/usr/bin/which java\"" && return 1; }
+        ${JAVA} -Xmx2m -Xms2m -jar ${ML_JAR_DIR}/MLSensor.jar -version;
+        return 0
+}
 
 start() {
-        [[ ! -e ${ML_CFG} ]] && { echo "Configuration file ${ML_CFG} not found! Use mlsensor_config from within ${ML_CFG}"}
-
+        [[ ! -e ${ML_CFG} ]] && { echo "Configuration file ${ML_CFG} not found! Use mlsensor_config from within $(/usr/bin/dirname ${ML_CFG})" && return 1;}
         echo -n "Starting MLSensor : "
-        daemon --user root --pidfile ${PIDFILE} java "${JAVA_ARG}" &> $LOGFILE
+        daemon --user ${USER} --pidfile ${PIDFILE} ${JAVA} "${JAVA_ARG}"
         RETVAL=$?
         [ $RETVAL -eq 0 ] && touch $LOCKFILE
         echo
@@ -42,13 +53,13 @@ start() {
 }
 
 stop() {
-        echo -n "Shutting down <servicename>: "
+        echo -n "Shutting down <mlsensor>: "
         killproc -p ${PIDFILE}
+        RETVAL=$?
         rm -f $LOCKFILE
         return $RETVAL
 }
 
-version() { java -Xmx2m -Xms2m -jar ${ML_JAR_DIR}/MLSensor.jar -version ;}
 
 case "$1" in
     start)
