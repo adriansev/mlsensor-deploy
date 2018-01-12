@@ -11,7 +11,7 @@ PIDFile=/var/run/mlsensor.pid
 AssertPathExists=/etc/mlsensor/mlsensor.properties
 WorkingDirectory=/tmp
 
-ExecStart=/usr/bin/java -Xms16m -Xmx32m -DMLSENSOR_HOME=/home/mlsensor -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
+ExecStart=/usr/bin/java -Xms16m -Xmx32m -DMLSENSOR_HOME=/tmp -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
 -Dlia.Monitor.ConfigURL=file:/etc/mlsensor/mlsensor.properties -jar /usr/share/java/mlsensor/MLSensor.jar
 
 [Install]
