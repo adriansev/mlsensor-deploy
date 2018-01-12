@@ -25,7 +25,8 @@ JAVA=$(/usr/bin/which java)
 ##-Xms32m
 ##-Xms64M -Xmx512M
 JAVA_ARG=" \
--DMLSENSOR_HOME=${MLSENSOR_HOME} \
+-DMLSENSOR_HOME=/tmp \
+-Djava.net.preferIPv4Stack=true \
 -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
 -Dlia.Monitor.ConfigURL=file:${ML_CFG} \
 -jar ${ML_JAR_DIR}/MLSensor.jar"
@@ -48,7 +49,7 @@ start() {
         check_cfg && return $?
         LOGDIR=$(/usr/bin/dirname $(/bin/awk -F" = " '/java.util.logging.FileHandler.pattern/ {print $2}' ${ML_CFG}))
         echo -n "Starting mlsensord: "
-        /usr/sbin/daemonize -v -o ${LOGDIR}/mlsensord.log -e ${LOGDIR}/mlsensord.log -u ${USER} -c /tmp/ -p ${PIDFILE} -l ${PIDFILE} ${JAVAD} >/dev/null  2>&1
+        /usr/sbin/daemonize -v -o ${LOGDIR}/mlsensord.log -e ${LOGDIR}/mlsensord.log -u ${USER} -c /tmp/ -p ${PIDFILE} -l ${PIDFILE} ${JAVAD} 2>&1 >/dev/null
         RETVAL=$?
         [[ "${RETVAL}" -eq 0 ]] && success || failure
         echo
