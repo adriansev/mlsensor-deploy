@@ -4,17 +4,18 @@
 %global use_systemd 0
 %endif
 
-Summary:	MLSensor
-Name:		mlsensor
-Version:	1.0
-Release:	1%{?dist}
-License:	none
-Group:		System Environment/Daemons
+Summary:    MLSensor
+Name:       mlsensor
+Version:    1.0
+Release:    1%{?dist}
+License:    none
+Group:      System Environment/Daemons
 
-Source0: 	%{name}-%{version}.tar.gz
-BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source0:    %{name}-%{version}.tar.gz
+BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildArch:  noarch
+Provides: mlsensor = %{Version}
 
 Requires(pre): shadow-utils
 
@@ -23,9 +24,15 @@ Requires: curl
 Requires: bind-utils
 Requires: xrootd-client
 
+
 %if %{use_systemd} == 1
 BuildRequires: systemd
 %endif
+
+%if %{use_systemd} == 0
+Requires: daemonize
+%endif
+
 
 %define USER mlsensor
 %define GROUP mlsensor
@@ -41,9 +48,13 @@ getent passwd %{USER} >/dev/null || \
     -c "MLSensor agent account" %{USER}
 exit 0
 
+/bin/mkdir /var/log/%{USER}
+/bin/chown %{USER}:%{GROUP} /var/log/%{USER}
 
 %prep
 %setup -q
+
+%build
 
 %install
 rm -rf %{buildroot}
