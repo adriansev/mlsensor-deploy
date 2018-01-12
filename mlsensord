@@ -45,7 +45,7 @@ version() {
 }
 
 start() {
-        check_cfg || return $?
+        check_cfg && return $?
         LOGDIR=$(/usr/bin/dirname $(/bin/awk -F" = " '/java.util.logging.FileHandler.pattern/ {print $2}' ${ML_CFG}))
         echo -n "Starting mlsensord: "
         /usr/sbin/daemonize -v -o ${LOGDIR}/mlsensord.log -e ${LOGDIR}/mlsensord.log -u ${USER} -c /tmp/ -p ${PIDFILE} -l ${PIDFILE} ${JAVAD} >/dev/null  2>&1
