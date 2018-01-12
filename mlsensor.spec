@@ -19,7 +19,7 @@ Provides: mlsensor = %{Version}
 
 Requires(pre): shadow-utils
 
-Requires: java >= 1.6.0
+Requires: java-headless >= 1.6.0
 Requires: curl
 Requires: bind-utils
 Requires: xrootd-client
