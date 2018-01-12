@@ -10,56 +10,58 @@
 # config: /etc/mlsensor/mlsensor.properties autoreload
 # pidfile: /var/run/mlsensord.pid
 
-
 # Source function library.
 . /etc/init.d/functions
 
 RETVAL="0"
 USER="mlsensor"
-MLSENSOR_HOME="/home/${USER}/"
-
-MLCFGDIR="/etc/mlsensor/"
+MLSENSOR_HOME="/home/${USER}"
+MLCFGDIR="/etc/mlsensor"
 ML_CFG="${MLCFGDIR}/mlsensor.properties"
-
-LOGDIR="/var/log/mlsensor/"
-LOCKFILE="/var/lock/subsys/mlsensord"
 PIDFILE="/var/run/mlsensord.pid"
+ML_JAR_DIR="/usr/share/java/mlsensor"
 
-ML_JAR_DIR="/usr/share/java/mlsensor/"
-
-JAVA_ARG="-Xms16m -Xmx32m \
+JAVA=$(/usr/bin/which java)
+##-Xms32m
+##-Xms64M -Xmx512M
+JAVA_ARG=" \
 -DMLSENSOR_HOME=${MLSENSOR_HOME} \
 -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
--Djava.util.logging.FileHandler.pattern=${LOGDIR}/MLSensor%g.log \
 -Dlia.Monitor.ConfigURL=file:${ML_CFG} \
 -jar ${ML_JAR_DIR}/MLSensor.jar"
 
-JAVA=$(/usr/bin/which java)
+JAVAD="${JAVA} ${JAVA_ARG}"
+
+check_cfg() { [[ ! -e ${ML_CFG} ]] && { echo "Configuration file ${ML_CFG} not found! Use mlsensor_config to generate $(/bin/basename ${ML_CFG}) file in directory $(/usr/bin/dirname ${ML_CFG})" && return 1;}; }
 
 version() {
         [[ -z "{JAVA}" ]] && { echo "java executable not found; check with \"/usr/bin/which java\"" && return 1; }
+        echo -ne "MLSensor version : "
         ${JAVA} -Xmx2m -Xms2m -jar ${ML_JAR_DIR}/MLSensor.jar -version;
+        echo
+        echo -ne "Java version : "
+        ${JAVA} -showversion 2>&1 | head -3
         return 0
 }
 
 start() {
-        [[ ! -e ${ML_CFG} ]] && { echo "Configuration file ${ML_CFG} not found! Use mlsensor_config from within $(/usr/bin/dirname ${ML_CFG})" && return 1;}
-        echo -n "Starting MLSensor : "
-        daemon --user ${USER} --pidfile ${PIDFILE} ${JAVA} "${JAVA_ARG}"
+        check_cfg || return $?
+        LOGDIR=$(/usr/bin/dirname $(/bin/awk -F" = " '/java.util.logging.FileHandler.pattern/ {print $2}' ${ML_CFG}))
+        echo -n "Starting mlsensord: "
+        /usr/sbin/daemonize -v -o ${LOGDIR}/mlsensord.log -e ${LOGDIR}/mlsensord.log -u ${USER} -c /tmp/ -p ${PIDFILE} -l ${PIDFILE} ${JAVAD} >/dev/null  2>&1
         RETVAL=$?
-        [ $RETVAL -eq 0 ] && touch $LOCKFILE
+        [[ "${RETVAL}" -eq 0 ]] && success || failure
         echo
         return $RETVAL
 }
 
 stop() {
-        echo -n "Shutting down <mlsensor>: "
+        echo -n "Shutting down mlsensord: "
         killproc -p ${PIDFILE}
         RETVAL=$?
-        rm -f $LOCKFILE
+        echo
         return $RETVAL
 }
-
 
 case "$1" in
     start)
@@ -69,7 +71,7 @@ case "$1" in
         stop
         ;;
     status)
-        status -p ${PIDFILE}
+        status -p ${PIDFILE} -l ${PIDFILE}
         ;;
     restart)
         stop
