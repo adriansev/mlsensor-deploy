@@ -26,7 +26,6 @@ JAVA=$(/usr/bin/which java)
 ##-Xms64M -Xmx512M
 JAVA_ARG=" \
 -DMLSENSOR_HOME=/tmp \
--Djava.net.preferIPv4Stack=true \
 -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
 -Dlia.Monitor.ConfigURL=file:${ML_CFG} \
 -jar ${ML_JAR_DIR}/MLSensor.jar"
