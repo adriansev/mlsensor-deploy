@@ -76,23 +76,15 @@ mkdir -p %{buildroot}/%{_initddir}
 cp mlsensord %{buildroot}/%{_initddir}/
 %endif
 
+/bin/find $RPM_BUILD_ROOT \( -type f -o -type l \) -print | sed "s#^$RPM_BUILD_ROOT/*#/#" > RPM-FILE-LIST
+
 %clean
 rm -rf %{buildroot}
 
-%files
+%files -f RPM-FILE-LIST
 %defattr(-,root,root)
 %config %{_sysconfdir}/%{name}/*
-%{_javadir}/%{name}/*
-%{_bindir}/*
-
-%if %{use_systemd} == 1
-%{_unitdir}/*
-%ghost %{_initddir}/*
-%else
-%{_initddir}/*
-%ghost %{_unitdir}/*
-%endif
 
 %changelog
-* Sun Sep 17 2017 adrian <adrian.sevcenco@cern.ch> - MLSensor
+* Fri Jan 12 2018 adrian <adrian.sevcenco@cern.ch> - MLSensor rpm
 - Initial build.
