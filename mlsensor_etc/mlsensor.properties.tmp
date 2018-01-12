@@ -33,7 +33,7 @@ mlsensor.level = INFO
 ###
 #monDiskIOStat config section
 ###
-monDiskIOStat.configFile=/etc/mlsensor.properties
+monDiskIOStat.configFile=/etc/mlsensor/mlsensor.properties
 
 #allowedDevices=
 #deniedDevices=
