@@ -4,6 +4,10 @@
 %global use_systemd 0
 %endif
 
+%if 0%{?rhel} == 7
+ %define dist .el7
+%endif
+
 Summary:    MLSensor
 Name:       mlsensor
 Version:    1.0
@@ -24,7 +28,6 @@ Requires: curl
 Requires: bind-utils
 Requires: xrootd-client
 
-
 %if %{use_systemd} == 1
 BuildRequires: systemd
 %endif
@@ -32,7 +35,6 @@ BuildRequires: systemd
 %if %{use_systemd} == 0
 Requires: daemonize
 %endif
-
 
 %define USER mlsensor
 %define GROUP mlsensor
