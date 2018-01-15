@@ -1,6 +1,7 @@
 [Unit]
 Description=MonaLisa Monitoring Agent
 After=multi-user.target
+AssertPathExists=/etc/mlsensor/mlsensor.properties
 
 [Service]
 Type=simple
@@ -8,7 +9,6 @@ User=mlsensor
 Group=mlsensor
 SyslogIdentifier=mlsensor
 PIDFile=/var/run/mlsensor.pid
-AssertPathExists=/etc/mlsensor/mlsensor.properties
 WorkingDirectory=/tmp
 
 ExecStart=/usr/bin/java -Xms16m -Xmx32m -DMLSENSOR_HOME=/tmp -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
