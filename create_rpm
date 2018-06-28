@@ -1,0 +1,26 @@
+#!/bin/bash
+
+VER=$1
+REL=$2
+
+[[ -z "${VER}" ]] && { echo "Version number needed"; exit 1; }
+
+PACKAGE="mlsensor"
+
+./create_targz ${VER}
+rez=$?
+[[ ${rez} == 1 ]] && { echo "Could not create targz"; exit 1;}
+
+rpmdev-setuptree
+
+mv -f ${PACKAGE}-${VER}.tar.gz $HOME/rpmbuild/SOURCES/
+cp -f ${PACKAGE}.spec ${PACKAGE}.spec_wip
+
+sed -i "/Version:/c\Version: ${VER}" ${PACKAGE}.spec_wip
+
+[[ -n "${REL}" ]] && sed -i "/Release:/c\Release: ${REL}%{?dist}" ${PACKAGE}.spec_wip
+mv -f ${PACKAGE}.spec_wip $HOME/rpmbuild/SPECS/${PACKAGE}.spec
+
+cd $HOME/rpmbuild/SPECS
+rpmbuild --define "debug_package %{nil}" -ba ${PACKAGE}.spec
+
