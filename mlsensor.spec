@@ -48,7 +48,6 @@ getent group %{GROUP} >/dev/null || groupadd -r %{GROUP}
 getent passwd %{USER} >/dev/null || \
     useradd -r -g %{GROUP} -d %{HOMEDIR} -s /sbin/nologin \
     -c "MLSensor agent account" %{USER}
-exit 0
 
 /bin/mkdir /var/log/%{USER}
 /bin/chown %{USER}:%{GROUP} /var/log/%{USER}
