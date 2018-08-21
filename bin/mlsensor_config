@@ -23,7 +23,7 @@ echo "arg2 = the name of the storage cluster as seen in MonaLisa - ALICE::SOME_N
 TEMPLATE=$1
 [[ -e ${TEMPLATE} ]] && echo "Config template file is : ${TEMPLATE}" || { echo "Could not find configuration template file"; exit 1; }
 
-CFG="$(/bin/dirname ${TEMPLATE})/$(/bin/basename ${TEMPLATE} .tmp)"
+CFG="$(/usr/bin/dirname ${TEMPLATE})/$(/bin/basename ${TEMPLATE} .tmp)"
 /bin/cp ${TEMPLATE} ${CFG}
 CFG_PATH=$(/bin/readlink -f ${CFG})
 
