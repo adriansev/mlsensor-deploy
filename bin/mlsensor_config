@@ -114,8 +114,8 @@ ROLE="server"
 cfg_set_value ${CFG} mlsensor.apmon.destinations "${ML_DEST}"
 cfg_set_value ${CFG} monDiskIOStat.configFile "${CFG_PATH}"
 cfg_set_value ${CFG} cluster.name "${SE_NAME}"
-cfg_set_value ${CFG} cluster.name.dynamic false
-cfg_set_value ${CFG} cluster.name.suffix _xrootd_Nodes
+#cfg_set_value ${CFG} cluster.name.dynamic false
+#cfg_set_value ${CFG} cluster.name.suffix _xrootd_Nodes
 
 ## add specific xrootd monitoring to MLSensor
 [[ "${ROLE}" == "manager" ]] && echo "
