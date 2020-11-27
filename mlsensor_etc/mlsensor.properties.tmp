@@ -1,20 +1,20 @@
+# Address of local MonaLisa service; this is usually the VOBOX (unles there is a site local ML proxy service)
 mlsensor.apmon.destinations = localhost:56884
 
 ############### Format of the data to send #############################
-# cluster name to send the data to
-# Can be any name, the same for all machines in a cluster
+# cluster name to send the data to; This should be the name of the ALICE storage name
 cluster.name=MLSensor
 
 # enable an extra suffix for cluster names
 # AliEnFilter creates aggregated values for all clusters ending in _Nodes
-cluster.name.suffix.enabled=true
-cluster.name.suffix=_Nodes
+cluster.name.suffix.enabled = true
+cluster.name.suffix = _xrootd_Nodes
+
+# append a module-dependent cluster name suffix
+cluster.name.dynamic = false
 
 # if the FQDN cannot be determined or is the wrong one override it with this option
 #node.name=<defaults to fqdn of localhost>
-
-# append a module-dependent cluster name suffix
-cluster.name.dynamic=true
 
 ################ Logging configuration ##################################
 ##

@@ -4,14 +4,10 @@
 %global use_systemd 0
 %endif
 
-%if 0%{?rhel} == 7
- %define dist .el7
-%endif
-
 Summary:    MLSensor
 Name:       mlsensor
-Version:    1.0
-Release:    1%{?dist}
+Version:    1.2.5
+Release:    2%{?dist}
 License:    none
 Group:      System Environment/Daemons
 
@@ -26,7 +22,6 @@ Requires(pre): shadow-utils
 Requires: java-headless >= 1.6.0
 Requires: curl
 Requires: bind-utils
-Requires: xrootd-client
 
 %if %{use_systemd} == 1
 BuildRequires: systemd

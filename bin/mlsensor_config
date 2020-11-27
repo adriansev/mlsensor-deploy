@@ -1,90 +1,96 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##   functions for configurations editing
 myreplace       () { a=$(echo $1 | /bin/sed 's/\//\\\//g') ; b=$(echo $2 | sed 's/\//\\\//g') ; cat | sed "s/$a/$b/g" ; }
 replace_in_file () { cat $1 | myreplace "$2" "$3" > $1.new ; rm -f $1 ; mv $1.new $1 ; }
 
 cfg_set_value () {
-local CFGFILE="$1"
-local KEY="$2"
-local VALUE="$3"
+local CFGFILE="${1}"
+local KEY="${2}"
+local VALUE="${3}"
 /bin/sed --follow-symlinks -i "s#^\(${KEY}\s*=\s*\).*\$#\1${VALUE}#" ${CFGFILE}
 }
 
 help () {
 echo "Required arguments are : "
 echo "arg1 = the configuration file - mlsensor.properties.template"
-echo "arg2 = the name of the storage cluster as seen in MonaLisa - ALICE::SOME_NAME::FILE"
+echo "arg2 = the name of the storage cluster as seen in MonaLisa - ALICE::SOME_NAME::SOME_TYPE"
 }
 
-[[ -z "$1" ]] && { help && exit 1; }
+[[ -z "${1}" ]] && { help && exit 1; }
 
 ## first argument is the configuration file
-TEMPLATE=$1
+TEMPLATE="${1}"
 [[ -e ${TEMPLATE} ]] && echo "Config template file is : ${TEMPLATE}" || { echo "Could not find configuration template file"; exit 1; }
 
-CFG="$(/usr/bin/dirname ${TEMPLATE})/$(/bin/basename ${TEMPLATE} .tmp)"
-/bin/cp ${TEMPLATE} ${CFG}
-CFG_PATH=$(/bin/readlink -f ${CFG})
+CFG="$(/usr/bin/dirname ${TEMPLATE})/$(/usr/bin/basename ${TEMPLATE} .tmp)"
+/usr/bin/cp ${TEMPLATE} ${CFG}
+CFG_PATH=$(/usr/bin/readlink -f ${CFG})
 
 ##   CHECK AND ESTABLISH THE SE NAME
-SE_NAME=$2
+SE_NAME="${2}"
 
 ## if argument null check if there is env variable ALICEXRD_SE_NAME
 [[ -z "${SE_NAME}" ]] && SE_NAME=${ALICEXRD_SE_NAME}
 
-## if still not defined check and query local running xrootd server
-if [[ -z "${SE_NAME}" ]] && [[ -e /usr/bin/xrdfs ]] ; then
+xrdfs_present="$(command -v xrdfs)"
+[[ -z "${xrdfs_present}" ]] && echo ">>>>>>>>>>   xrdfs command not found !!! this could indicate an installation problem"
 
+## if still not defined check and query local running xrootd server
+if [[ -z "${SE_NAME}" ]] && [[ -n "${xrdfs_present}" ]] ; then
     ## have the ports of possible xrootd servers running; to be used to query the servers
     XRD_PORT=$(ss -ltnp | awk '/xrootd/ { n=split($4,listening,":");print listening[n];}') #'
 
     ## if server port(s) found try each one until SE_NAME is defined (if manager+server first one will be the manager)
     if [[ -n "${XRD_PORT}"  ]]; then
       for PORT in "${XRD_PORT}"; do
-          [[ -z "${SE_NAME}" ]] && SE_NAME=$(/usr/bin/xrdfs localhost:${PORT} query config sitename);
+          [[ -z "${SE_NAME}" ]] && SE_NAME="$(/usr/bin/xrdfs localhost:${PORT} query config sitename)";
       done
     fi # end check if XRD_port found
 fi
 
 [[ -z "${SE_NAME}" ]] && { echo "SE name is not defined; use it as argument, export ALICEXRD_SE_NAME, or define it the configuration of _RUNNING_ xrootd server" && exit 1; }
-
 echo "Found SE_NAME=${SE_NAME}"
 
 CURLCMD="/usr/bin/curl -m 1 -fsSLk"
+# links to alimonitor to query about info
+local ALIMON_SE_URL ALIMON_IP_URL
+ALIMON_SE_URL='"http://alimonitor.cern.ch/services/se.jsp?se='"${SE_NAME}"'&ml_ip=true&resolve=true"' #'
+ALIMON_IP_URL="http://alimonitor.cern.ch/services/ip.jsp"
 
 ## Get SE info from MonaLisa and check if the SE name is valid
-se_info=$(${CURLCMD} "http://alimonitor.cern.ch/services/se.jsp?se=${SE_NAME}&ml_ip=true&resolve=true";)
-[[ -z "${se_info}" ]] && { sleep 1; se_info=$(${CURLCMD} "http://alimonitor.cern.ch/services/se.jsp?se=${SE_NAME}&ml_ip=true&resolve=true";); }
-[[ -z "${se_info}" ]] && { sleep 2; se_info=$(${CURLCMD} "http://alimonitor.cern.ch/services/se.jsp?se=${SE_NAME}&ml_ip=true&resolve=true";); }
-[[ "${se_info}" == "null" ]] || [[ -z "${se_info}" ]] && { echo "The stated SE name ${SE_NAME} is not found - either bad conectivity or wrong SE name" && exit 1; }
+SE_INFO=$(eval "${CURLCMD}" "${ALIMON_SE_URL}";)
+[[ -z "${SE_INFO}" ]] && { sleep 1; SE_INFO=$(eval "${CURLCMD}" "${ALIMON_SE_URL}";); }
+[[ -z "${SE_INFO}" ]] && { sleep 2; SE_INFO=$(eval "${CURLCMD}" "${ALIMON_SE_URL}";); }
+[[ "${SE_INFO}" == "null" ]] || [[ -z "${SE_INFO}" ]] && { echo "The stated SE name ${SE_NAME} is not found - either bad conectivity or wrong SE name"; exit 1; }
 
-## Find information about site from ML
-MONALISA_FQDN=$(/bin/awk -F": " '/MLSERVICE_/ {print $2}' <<< "${se_info}" | head -n1) #'
+## Find VOBOX list for this storage
+MONALISA_FQDN_LIST=($(/usr/bin/awk -F": " '/MLSERVICE_/ {print $2}' <<< "${SE_INFO}")) #'
+[[ "${#MONALISA_FQDN_LIST[@]}" == 0 ]] && { echo "No VOBOX hostnames found for ${SE_NAME}"; exit 1; }
+[[ "${#MONALISA_FQDN_LIST[@]}" > 1 ]] && { echo -e "Found more than 1 VOBOX for ${SE_NAME} : ${MONALISA_FQDN_LIST[@]}\nUsing the fist one"; }
 MONALISA_PORT="8884"
-ML_DEST="${MONALISA_FQDN}:${MONALISA_PORT}"
-
-## get my ip
-MYNET=$(${CURLCMD} "http://alimonitor.cern.ch/services/ip.jsp")
-[[ -z "${MYNET}" ]] && { echo "MYIP not found, maybe bad connectivity to alimonitor?" && exit 1; }
+ML_DEST="${MONALISA_FQDN_LIST[0]}:${MONALISA_PORT}"
 
 ## XROOTD Manager info
-MANAGER_HOST_PORT=$( /bin/awk -F": " '/seioDaemons/ { gsub ("root://","",$2); print $2 }' <<< "${se_info}" ) #'
+MANAGER_HOST_PORT=$(/usr/bin/awk -F": " '/seioDaemons/ { gsub ("root://","",$2); print $2 }' <<< "${SE_INFO}" ) #'
 IFS=':' read -r -a mgr_host_port_arr <<< "${MANAGER_HOST_PORT}"
 MANAGERHOST="${mgr_host_port_arr[0]}"
 MANAGERPORT="${mgr_host_port_arr[1]}"
+
+## get my ip
+MYNET=$(${CURLCMD} "http://alimonitor.cern.ch/services/ip.jsp")
+[[ -z "${MYNET}" ]] && { echo "MYNET not found, maybe bad connectivity to alimonitor?" && exit 1; }
 
 ###############################################################################################
 ###   Network prerequisites for install
 
 ## Network information and validity checking
-MYIP=$(/bin/awk '/IP/ {gsub("IP:","",$1); print $1;}'  <<< "${MYNET}") #'
-REVERSE=$(/bin/awk '/FQDN/ {gsub("FQDN:","",$1); print $1;}'  <<< "${MYNET}" ) #'
+MYIP=$(/usr/bin/awk '/IP/ {gsub("IP:","",$1); print $1;}'  <<< "${MYNET}") #'
+REVERSE=$(/usr/bin/awk '/FQDN/ {gsub("FQDN:","",$1); print $1;}'  <<< "${MYNET}" ) #'
 
 ## make sure the exit public ip is locally configured
-ip_list=$(/sbin/ip addr show scope global up | /bin/awk '/inet/ {split ($2,ip,"/"); print ip[1];}') #'
-found_at=$(expr index "${ip_list}" "${MYIP}")
-[[ "${found_at}" == "0" ]] && { echo "Server without public/rutable ip. No NAT schema supported at this moment"; exit 1; }
+ip_list=($(/sbin/ip addr show scope global up | /usr/bin/awk '/inet/ {split ($2,ip,"/"); print ip[1];}')) #'
+[[ " ${ip_list[@]} " =~ " ${MYIP} " ]] || { echo "Server without public/rutable ip!"; exit 1; }
 
 ## what is my local set hostname
 [[ -z "${myhost}" ]] && myhost=$(/bin/hostname -f)
@@ -97,38 +103,8 @@ echo "The fully qualified hostname appears to be ${myhost}"
 
 ###############################################################################################
 ## WHAT IS MY ROLE?
-is_manager=""
 ROLE="server"
-
-## am i the top manager defined in ML ?
-## maybe the manager is an alias to multiple redundant ips
-DNS_QUERY_IPv4=$(host -t A ${MANAGERHOST})
-DNS_QUERY_IPv6=$(host -t AAAA ${MANAGERHOST})
-
-[[ "${DNS_QUERY_IPv4}" =~ no.+record ]] || [[ "${DNS_QUERY_IPv4}" =~ NXDOMAIN ]] && DNS_QUERY_IPv4=""
-[[ "${DNS_QUERY_IPv6}" =~ no.+record ]] || [[ "${DNS_QUERY_IPv6}" =~ NXDOMAIN ]] && DNS_QUERY_IPv6=""
-
-MANAGER_IP_LIST=$(/bin/awk '{print $NF;}' <<< "${DNS_QUERY_IPv4}") #'
-MANAGER_IPv6_LIST=$(/bin/awk '{print $NF;}'  <<< "${DNS_QUERY_IPv6}") #'
-
-if (( $(echo ${MANAGER_IP_LIST} | wc -l) > 1 )) ; then
-    ## is my ip in manager ip list
-    [[ "${MANAGER_IP_LIST}" =~ "${MYIP}" ]] && { is_manager="1" ; ROLE="manager" ; }
-fi
-
-## maybe i am a second tier manager?
-if [[ -z "${is_manager}" ]]; then
-    ## have the ports of possible xrootd servers running; to be used to query the servers
-    XRD_PORT=$(ss -ltnp | awk '/xrootd/ { n=split($4,listening,":");print listening[n];}') #'
-
-    ## if ports (multiple servers possible) we query all to check if one is manager
-    if [[ -n "${XRD_PORT}" ]]; then
-      for PORT in ${XRD_PORT}; do
-          ROLE=$(/usr/bin/xrdfs localhost:${PORT} query config role | tr -d '[:space:]');
-          [[ "${ROLE}" == "manager" ]] && is_manager="1";
-      done
-    fi ## end check if xrd port found
-fi
+[[ "${REVERSE}" == "${MANAGERHOST}" ]] && ROLE="manager"
 
 #########################################
 ###   Configure mlsensor.propreties   ###
@@ -136,32 +112,27 @@ fi
 
 ## Set the target MonaLisa aggregator
 cfg_set_value ${CFG} mlsensor.apmon.destinations "${ML_DEST}"
-cfg_set_value ${CFG} monDiskIOStat.configFile ${CFG_PATH}
-cfg_set_value ${CFG} cluster.name ${SE_NAME}
+cfg_set_value ${CFG} monDiskIOStat.configFile "${CFG_PATH}"
+cfg_set_value ${CFG} cluster.name "${SE_NAME}"
 cfg_set_value ${CFG} cluster.name.dynamic false
 cfg_set_value ${CFG} cluster.name.suffix _xrootd_Nodes
 
 ## add specific xrootd monitoring to MLSensor
-(
-echo
-echo "# Be compatible with legacy Perl xrootd monitoring companion"
-echo "rewrite.parameter.names=true"
-echo "cluster.name.suffix.monXrdSpace=_${ROLE}_xrootd_Services"
-echo
-echo "# Run the disk space checking every 5 minutes"
-echo "monXrdSpace.execDelay=300"
-echo
-echo "# Change this to the full path to xrd if it cannot be found in PATH, and replace 1094 with redirector port number"
-echo "lia.Monitor.modules.monXrdSpace.args=xrd ${MANAGERPORT}"
-) >> ${CFG}
+[[ "${ROLE}" == "manager" ]] && echo "
+# Monitor xrootd disk space usage
+# ************* IMPORTANT: only enable the following line on the redirector itself
+mlsensor.modules=monXrdSpace
 
-# add monitoring of space
-(
-echo
-echo "# Monitor xrootd disk space usage"
-echo "# ************* IMPORTANT: only enable the following line on the redirector itself"
-echo "mlsensor.modules=monXrdSpace"
-) >> ${CFG}
+# Run the disk space checking every 5 minutes
+monXrdSpace.execDelay=300
+
+# Be compatible with legacy Perl xrootd monitoring companion
+rewrite.parameter.names=true
+cluster.name.suffix.monXrdSpace=_${ROLE}_xrootd_Services
+
+# Change this to the full path to xrd if it cannot be found in PATH
+lia.Monitor.modules.monXrdSpace.args=xrdfs ${MANAGERPORT}
+" >> ${CFG}
 
 echo "!!!!!!! CHECK MLSensor ${CFG} to be sure that settings are ok!!!!!!!!!!!!"
 
