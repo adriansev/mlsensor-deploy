@@ -39,6 +39,12 @@ Requires: daemonize
 MLSensor agent for sending monitoring data to MonaLisa service
 
 %pre
+
+xrdfs_present=$(command -v xrdfs)
+if [ -z "$xrdfs_present" ]; then
+    echo -e "!!! xrdfs command was not found in path!\nxrootd-client packages should be installed or the command should be specified by path in mlsensor configuration"
+fi
+
 getent group %{GROUP} >/dev/null || groupadd -r %{GROUP}
 getent passwd %{USER} >/dev/null || \
     useradd -r -g %{GROUP} -d %{HOMEDIR} -s /sbin/nologin \
