@@ -6,8 +6,8 @@
 
 Summary:    MLSensor
 Name:       mlsensor
-Version:    1.2.5
-Release:    2%{?dist}
+Version:    1.2.6
+Release:    1%{?dist}
 License:    none
 Group:      System Environment/Daemons
 
