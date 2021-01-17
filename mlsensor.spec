@@ -43,13 +43,11 @@ getent passwd %{USER} >/dev/null || \
 /bin/chown %{USER}:%{GROUP} /var/log/%{USER}
 
 # Create udev rules for ipmi access IF ipmitool is found
-command -v ipmitool &> /dev/null && {
-echo "
-KERNEL=="ipmi*", SUBSYSTEM=="ipmi", MODE="20660"
-KERNEL=="ipmi*", SUBSYSTEM=="ipmi", GROUP="mlsensor"
-" > /etc/udev/rules.d/90-ipmi.rules
-udevadm control --reload-rules && systemctl restart systemd-udevd.service && udevadm trigger
-}
+if [ -e /usr/bin/ipmitool ] ; then
+    echo 'KERNEL=="ipmi*", SUBSYSTEM=="ipmi", MODE="20660"
+KERNEL=="ipmi*", SUBSYSTEM=="ipmi", GROUP="mlsensor" ' > /etc/udev/rules.d/90-ipmi.rules
+    udevadm control --reload-rules && systemctl restart systemd-udevd.service && udevadm trigger
+fi
 
 %post
 systemctl daemon-reload
