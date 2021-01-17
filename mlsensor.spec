@@ -15,7 +15,7 @@ Source0:    %{name}-%{version}.tar.gz
 BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildArch:  noarch
-Provides: mlsensor = %{Version}
+Provides: mlsensor = %{version}-%{release}
 
 Requires(pre): shadow-utils
 
@@ -54,19 +54,19 @@ getent passwd %{USER} >/dev/null || \
 /bin/mkdir /var/log/%{USER}
 /bin/chown %{USER}:%{GROUP} /var/log/%{USER}
 
-# Create udev rules for ipmi access
+# Create udev rules for ipmi access IF ipmitool is found
+command -v ipmitool &> /dev/null && {
 echo "
 KERNEL=="ipmi*", SUBSYSTEM=="ipmi", MODE="20660"
 KERNEL=="ipmi*", SUBSYSTEM=="ipmi", GROUP="mlsensor"
 " > /etc/udev/rules.d/90-ipmi.rules
-
 udevadm control --reload-rules && systemctl restart systemd-udevd.service && udevadm trigger
-
+}
 
 %post
 systemctl daemon-reload
 echo "
-The mlsensor configuration should be generated in /etc/mlsensor with this form (generic names to be replaced)
+The mlsensor configuration should be generated in /etc/mlsensor with this command form (generic names to be replaced)
 mlsensor-config template_file_name ALICE::SE_NAME::SE_TYPE
 systemctl enable mlsensor.service
 systemctl start mlsensor.service
@@ -108,228 +108,160 @@ rm -rf %{buildroot}
 %config %{_sysconfdir}/%{name}/*
 
 %changelog
-2021-01-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Sun Jan 17 2021 Adrian Sevcenco
+- conditionaly add udev ipmi permission on presence of ipmitool
 
-* bin/mlsensor_config, mlsensor.service, mlsensor.spec,
-mlsensor_etc/mlsensor.properties.tmp: update ML jar files (multiple
-improvements, query of multiple local servers); update configuration
-template and configuration script; add to spec file the udev rule
-for mlsensor permission to ipmi device
+* Sun Jan 17 2021 Adrian Sevcenco
+- fix mlsensor.service, add changelog to rpm spec
 
-2021-01-14  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Sun Jan 17 2021 Adrian Sevcenco
+- update ML jar files (multiple improvements, query of multiple local servers);
+- update configuration template and configuration script;
+- add to spec file the udev rule for mlsensor permission to ipmi device
 
-* mlsensor.spec: update spec version
+* Thu Jan 14 2021 Adrian Sevcenco
+- update spec version
 
-2021-01-14  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Thu Jan 14 2021 Adrian Sevcenco
+- remove mlsensord :: no longer needed, service is systemd based
 
-* mlsensord: remove mlsensord :: no longer needed, service is
-systemd based
+* Thu Jan 14 2021 Adrian Sevcenco
+- remove outside of proper dir jar files
 
-2021-01-14  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Wed Jan 13 2021 Costin Grigoras
+- allow monXrdSpace to publish its own node names
 
-* : remove outside of proper dir jar files
+* Wed Jan 13 2021 Costin Grigoras
+- allow monXrdSpace to report its own node names
 
-2021-01-13  Costin Grigoras <costing@gmail.com>
+* Wed Jan 13 2021 Costin Grigoras
+- log monXrdSpace configuration
 
-* : allow monXrdSpace to publish its own node names
+* Wed Jan 13 2021 Costin Grigoras
+- bug fix, one more try?
 
-2021-01-13  Costin Grigoras <costing@gmail.com>
+* Wed Jan 13 2021 Costin Grigoras
+- default report node name instead of `localhost` (when only indicating port numbers)
 
-* : allow monXrdSpace to report its own node names
+* Wed Jan 13 2021 Costin Grigoras
+- fix monXrdSpace command + query several endpoints
 
-2021-01-13  Costin Grigoras <costing@gmail.com>
+* Mon Dec 14 2020 Costin Grigoras
+- Bump ML modules and ApMon to the same as in JAliEn
 
-* : log monXrdSpace configuration
+* Sat Nov 28 2020 Adrian Sevcenco
+- spec file:: remove dependency on xrootd-client (for cases like eos) and just warn if xrdfs not found
 
-2021-01-13  Costin Grigoras <costing@gmail.com>
+* Fri Nov 27 2020 Adrian Sevcenco
+- mlsensor_config :: comment out settings that were changed as defaults in template config
 
-* : bug fix, one more try?
+* Fri Nov 27 2020 Adrian Sevcenco
+- update the configuration script and configuration template
 
-2021-01-13  Costin Grigoras <costing@gmail.com>
+* Thu May 14 2020 Costin Grigoras
+- Merge pull request #1 from costing/master
 
-* : default report node name instead of `localhost` (when only
-indicating port numbers)
+* Wed May 13 2020 Costin Grigoras
+- Bump ML modules to add the cpu_usage parameter
 
-2021-01-13  Costin Grigoras <costing@gmail.com>
+* Wed Mar 06 2019 Adrian Sevcenco
+- mlsensor_config :: remove permanent from the ip listing as routable ip can be assigned by dhcp
 
-* : fix monXrdSpace command + query several endpoints
+* Wed Mar 06 2019 Adrian Sevcenco
+- mlsensor.service :: start after network is enabled
 
-2020-12-14  Costin Grigoras <costing@gmail.com>
+* Tue Aug 21 2018 Adrian Sevcenco
+- mlsensor_config : dirname is in /usr/bin/
 
-* : Bump ML modules and ApMon to the same as in JAliEn
+* Tue Aug 21 2018 Adrian Sevcenco
+- mlsensor.spec :: so ... we DO NOT need an exit in the middle of PRE
 
-2020-11-28  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jun 29 2018 Adrian Sevcenco
+- add create_rpm script
 
-* mlsensor.spec: spec file:: remove dependency on xrootd-client (for
-cases like eos) and just warn if xrdfs not found
+* Fri Jun 29 2018 Adrian Sevcenco
+- mlsensor_config rewrite using new facilities of alimonitor
 
-2020-11-27  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Mon Jan 15 2018 Adrian Sevcenco
+- mlsensor.service : AssertPathExists belongs to Unit
 
-* bin/mlsensor_config: mlsensor_config :: comment out settings that
-were changed as defaults in template config
+* Sat Jan 13 2018 Adrian Sevcenco
+- mlsensor.spec : fix dist value for el7
 
-2020-11-27  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.spec : requires java-headless
 
-* README.md, bin/mlsensor_config, mlsensor.spec,
-mlsensor_etc/mlsensor.properties.tmp: update the configuration
-script and configuration template
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord : let the ipv6 test run even if it fails
 
-2020-05-14  Costin Grigoras <costing@gmail.com>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord : use tmp for mlsensor home and prefer ipv4
 
-* : Merge pull request #1 from costing/master Bump ML modules to add the cpu_usage parameter
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord :: fix wrong check
 
-2019-03-06  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- spec file fix
 
-* bin/mlsensor_config: mlsensor_config :: remove permanent from the
-ip listing as routable ip can be assigned by dhcp
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord : make proper demonization for sysvinit
 
-2019-03-06  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.spec : add daemonize for sysvinit and fixes
 
-* mlsensor.service: mlsensor.service :: start after network is
-enabled
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.properties.tmp : use proper path for monDiskIOStat.configFile
 
-2018-08-21  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.service : use /tmp as home
 
-* bin/mlsensor_config: mlsensor_config : dirname is in /usr/bin/
+* Wed Jan 10 2018 Adrian Sevcenco
+- fixes for services
 
-2018-08-21  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Tue Aug 21 2018 Adrian Sevcenco
+- mlsensor_config : dirname is in /usr/bin/
 
-* mlsensor.spec: mlsensor.spec :: so ... we DO NOT need an exit in
-the middle of PRE
+* Tue Aug 21 2018 Adrian Sevcenco
+- mlsensor.spec :: so ... we DO NOT need an exit in the middle of PRE
 
-2018-06-29  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jun 29 2018 Adrian Sevcenco
+- add create_rpm script
 
-* create_rpm: add create_rpm script
+* Fri Jun 29 2018 Adrian Sevcenco
+- mlsensor_config rewrite using new facilities of alimonitor
 
-2018-06-29  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Mon Jan 15 2018 Adrian Sevcenco
+- mlsensor.service : AssertPathExists belongs to Unit
 
-* bin/mlsensor_config: mlsensor_config rewrite using new facilities
-of alimonitor
+* Sat Jan 13 2018 Adrian Sevcenco
+- mlsensor.spec : fix dist value for el7
 
-2018-01-15  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.spec : requires java-headless
 
-* mlsensor.service: mlsensor.service : AssertPathExists belongs to
-Unit
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord : let the ipv6 test run even if it fails
 
-2018-01-13  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord : use tmp for mlsensor home and prefer ipv4
 
-* mlsensor.spec: mlsensor.spec : fix dist value for el7
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord :: fix wrong check
 
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- spec file fix
 
-* mlsensor.spec: mlsensor.spec : requires java-headless
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensord : make proper demonization for sysvinit
 
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.spec : add daemonize for sysvinit and fixes
 
-* mlsensord: mlsensord : let the ipv6 test run even if it fails
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.properties.tmp : use proper path for monDiskIOStat.configFile
 
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
+* Fri Jan 12 2018 Adrian Sevcenco
+- mlsensor.service : use /tmp as home
 
-* mlsensord: mlsensord : use tmp for mlsensor home and prefer ipv4
-
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensord: mlsensord :: fix wrong check
-
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensor.spec: spec file fix
-
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensord: mlsensord : make proper demonization for sysvinit
-
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensor.spec: mlsensor.spec : add daemonize for sysvinit and
-fixes
-
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensor_etc/mlsensor.properties.tmp: mlsensor.properties.tmp :
-use proper path for monDiskIOStat.configFile
-
-2018-01-12  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensor.service: mlsensor.service : use /tmp as home
-
-2018-01-10  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensor.service, mlsensor.spec, mlsensord: fixes for services
-
-2018-01-08  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* bin/mlsensor_config, mlsensor.spec: rebased to master as main dev
-branch + improvements
-
-2018-01-08  Adrian Sevcenco <adriansev@users.noreply.github.com>
-
-* README.md: Update README.md
-
-2018-01-08  Adrian Sevcenco <adriansev@users.noreply.github.com>
-
-* README.md: Create README.md
-
-2018-01-08  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* mlsensor_etc/mlsensor.properties.tmp: mlsensor.properties.tmp :
-set the output log to /var/log/mlsensor/MLSensor%g.log
-
-2018-01-08  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* create_targz, mlsensor.service, mlsensor.spec, mlsensord: wip not
-bad but should be tested
-
-2018-01-07  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* {usr/bin => bin}/mlsensor_config, create_targz,
-etc/mlsensor/mlsensor_env, mlsensor.spec, {etc/mlsensor =>
-mlsensor_etc}/mlsensor.properties.tmp, etc/rc.d/init.d/mlsensord =>
-mlsensord, usr/bin/MLSensor, usr/bin/mlsensord.info: rpm wip
-
-2017-09-19  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* create_targz, etc/mlsensor/mlsensor.properties.tmp,
-etc/mlsensor/mlsensor_env, etc/rc.d/init.d/mlsensord,
-mlsensor.spec, usr/bin/MLSensor, usr/bin/mlsensor_config,
-usr/bin/mlsensord.info: create system structure of files
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* bin/MLSensor, bin/mlsensor_config, deploy_mlsensor: make use of
-usr/bin
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* bin/mlsensord: create proper sysvinit directory
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* deploy_mlsensor: fix dir in deploy
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* etc/mlsensor.properties.tmp, etc/mlsensor_env: mlsensor dir in etc
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* deploy_mlsensor: deploy_mlsensor :: adapt script to the new
-structure
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* bin/mlsensord: sysvinit file for root/rpm installed mlsensor
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* bin/mlsensor_config: configuration script for mlsensor settings
-file
-
-2017-09-17  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* etc/{mlsensor.properties => mlsensor.properties.tmp}: rename
-mlsensor.properties to mlsensor.properties.tmp
-
-2017-03-20  Adrian Sevcenco <adrian.sevcenco@cern.ch>
-
-* initial commit with all MLSensor content
+* Wed Jan 10 2018 Adrian Sevcenco
+- fixes for services
