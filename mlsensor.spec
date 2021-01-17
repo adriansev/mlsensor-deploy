@@ -39,7 +39,7 @@ getent passwd %{USER} >/dev/null || \
     useradd -r -g %{GROUP} -d %{HOMEDIR} -s /sbin/nologin \
     -c "MLSensor agent account" %{USER}
 
-/bin/mkdir /var/log/%{USER}
+/bin/mkdir -p /var/log/%{USER}
 /bin/chown %{USER}:%{GROUP} /var/log/%{USER}
 
 # Create udev rules for ipmi access IF ipmitool is found
