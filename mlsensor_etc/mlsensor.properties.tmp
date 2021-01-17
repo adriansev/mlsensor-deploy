@@ -1,5 +1,6 @@
 # Address of local MonaLisa service; this is usually the VOBOX (unles there is a site local ML proxy service)
-mlsensor.apmon.destinations = localhost:56884
+# make sure UDP/8884 is open on VOBOX machine
+mlsensor.apmon.destinations = CHANGE_ME_TO_VOBOX_FQDN:8884
 
 ############### Format of the data to send #############################
 # cluster name to send the data to; This should be the name of the ALICE storage name
@@ -63,3 +64,17 @@ java.util.logging.FileHandler.pattern = /var/log/mlsensor/MLSensor%g.log
 # handlers= java.util.logging.ConsoleHandler
 # java.util.logging.ConsoleHandler.level = FINEST
 # java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter
+
+# Monitor xrootd disk space usage
+mlsensor.modules=monXrdSpace
+
+# Be compatible with legacy Perl xrootd monitoring companion
+rewrite.parameter.names=true
+cluster.name.suffix.monXrdSpace=_server_xrootd_Services
+
+# Run the disk space checking every 5 minutes
+monXrdSpace.execDelay=300
+
+# list of localhost ports of xrootd processes (can be more than one)
+lia.Monitor.modules.monXrdSpace.args=1094
+

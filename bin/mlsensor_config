@@ -54,7 +54,6 @@ echo "Found SE_NAME=${SE_NAME}"
 
 CURLCMD="/usr/bin/curl -m 1 -fsSLk"
 # links to alimonitor to query about info
-local ALIMON_SE_URL ALIMON_IP_URL
 ALIMON_SE_URL='"http://alimonitor.cern.ch/services/se.jsp?se='"${SE_NAME}"'&ml_ip=true&resolve=true"' #'
 ALIMON_IP_URL="http://alimonitor.cern.ch/services/ip.jsp"
 
@@ -67,9 +66,6 @@ SE_INFO=$(eval "${CURLCMD}" "${ALIMON_SE_URL}";)
 ## Find VOBOX list for this storage
 MONALISA_FQDN_LIST=($(/usr/bin/awk -F": " '/MLSERVICE_/ {print $2}' <<< "${SE_INFO}")) #'
 [[ "${#MONALISA_FQDN_LIST[@]}" == 0 ]] && { echo "No VOBOX hostnames found for ${SE_NAME}"; exit 1; }
-[[ "${#MONALISA_FQDN_LIST[@]}" > 1 ]] && { echo -e "Found more than 1 VOBOX for ${SE_NAME} : ${MONALISA_FQDN_LIST[@]}\nUsing the fist one"; }
-MONALISA_PORT="8884"
-ML_DEST="${MONALISA_FQDN_LIST[0]}:${MONALISA_PORT}"
 
 ## XROOTD Manager info
 MANAGER_HOST_PORT=$(/usr/bin/awk -F": " '/seioDaemons/ { gsub ("root://","",$2); print $2 }' <<< "${SE_INFO}" ) #'
@@ -111,28 +107,25 @@ ROLE="server"
 #########################################
 
 ## Set the target MonaLisa aggregator
-cfg_set_value ${CFG} mlsensor.apmon.destinations "${ML_DEST}"
+MONALISA_PORT="8884"
+cfg_set_value ${CFG} mlsensor.apmon.destinations "${MONALISA_FQDN_LIST[0]}:${MONALISA_PORT}"
+ML_NUMBER="${#MONALISA_FQDN_LIST[@]}"
+
+if (( ML_NUMBER  > 1 )) ; then
+    echo -e "Found more than 1 VOBOX for ${SE_NAME} : ${MONALISA_FQDN_LIST[@]}\nAdding more options as comments"
+    for i in ${!MONALISA_FQDN_LIST[@]}; do
+        (( i > 0 )) && sed -i "/mlsensor.apmon.destinations/ a # mlsensor.apmon.destinations = ${MONALISA_FQDN_LIST[$i]}:${MONALISA_PORT}" "${CFG_PATH}"
+    done
+fi
+
 cfg_set_value ${CFG} monDiskIOStat.configFile "${CFG_PATH}"
 cfg_set_value ${CFG} cluster.name "${SE_NAME}"
-#cfg_set_value ${CFG} cluster.name.dynamic false
-#cfg_set_value ${CFG} cluster.name.suffix _xrootd_Nodes
 
 ## add specific xrootd monitoring to MLSensor
-[[ "${ROLE}" == "manager" ]] && echo "
-# Monitor xrootd disk space usage
-# ************* IMPORTANT: only enable the following line on the redirector itself
-mlsensor.modules=monXrdSpace
+[[ "${ROLE}" == "manager" ]] && cfg_set_value ${CFG} cluster.name.suffix.monXrdSpace "_${ROLE}_xrootd_Services"
 
-# Run the disk space checking every 5 minutes
-monXrdSpace.execDelay=300
-
-# Be compatible with legacy Perl xrootd monitoring companion
-rewrite.parameter.names=true
-cluster.name.suffix.monXrdSpace=_${ROLE}_xrootd_Services
-
-# Change this to the full path to xrd if it cannot be found in PATH
-lia.Monitor.modules.monXrdSpace.args=xrdfs ${MANAGERPORT}
-" >> ${CFG}
-
-echo "!!!!!!! CHECK MLSensor ${CFG} to be sure that settings are ok!!!!!!!!!!!!"
+echo "!!!!!!! CHECK MLSensor ${CFG} to be sure that settings are ok!!!!!!!!!!!!
+If multiple xrootd processes run on the machine, fill the definition of
+lia.Monitor.modules.monXrdSpace.args=
+with the list of ports (space sepparated)"
 

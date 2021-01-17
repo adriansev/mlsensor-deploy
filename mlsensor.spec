@@ -19,7 +19,7 @@ Provides: mlsensor = %{Version}
 
 Requires(pre): shadow-utils
 
-Requires: java-headless >= 1.6.0
+Requires: java-headless >= 1.8.0
 Requires: curl
 Requires: bind-utils
 
@@ -45,6 +45,7 @@ if [ -z "$xrdfs_present" ]; then
     echo -e "!!! xrdfs command was not found in path!\nxrootd-client packages should be installed or the command should be specified by path in mlsensor configuration"
 fi
 
+# add user for the service
 getent group %{GROUP} >/dev/null || groupadd -r %{GROUP}
 getent passwd %{USER} >/dev/null || \
     useradd -r -g %{GROUP} -d %{HOMEDIR} -s /sbin/nologin \
@@ -52,6 +53,25 @@ getent passwd %{USER} >/dev/null || \
 
 /bin/mkdir /var/log/%{USER}
 /bin/chown %{USER}:%{GROUP} /var/log/%{USER}
+
+# Create udev rules for ipmi access
+echo "
+KERNEL=="ipmi*", SUBSYSTEM=="ipmi", MODE="20660"
+KERNEL=="ipmi*", SUBSYSTEM=="ipmi", GROUP="mlsensor"
+" > /etc/udev/rules.d/90-ipmi.rules
+
+udevadm control --reload-rules && systemctl restart systemd-udevd.service && udevadm trigger
+
+
+%post
+systemctl daemon-reload
+echo "
+The mlsensor configuration should be generated in /etc/mlsensor with this form (generic names to be replaced)
+mlsensor-config template_file_name ALICE::SE_NAME::SE_TYPE
+systemctl enable mlsensor.service
+systemctl start mlsensor.service
+
+"
 
 %prep
 %setup -q
