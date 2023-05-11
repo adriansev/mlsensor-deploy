@@ -9,8 +9,9 @@ Type=simple
 User=mlsensor
 Group=mlsensor
 SyslogIdentifier=mlsensor
-PIDFile=/var/run/mlsensor.pid
 WorkingDirectory=/tmp
+Restart=on-failure
+RestartSec=2
 
 ExecStart=/usr/bin/sh -c 'test -e /opt/eos/xrootd/bin/xrdfs && export PATH=/opt/eos/xrootd/bin:${PATH} LD_LIBRARY_PATH=/opt/eos/xrootd/lib64:${LD_LIBRARY_PATH}; \
 exec /usr/bin/java -Xms16m -Xmx32m -DMLSENSOR_HOME=/tmp -Djava.util.logging.config.class=lia.Monitor.monitor.LoggerConfigClass \
