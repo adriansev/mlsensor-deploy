@@ -1,6 +1,6 @@
 Summary:    MLSensor
 Name:       mlsensor
-Version:    1.2.6
+Version:    1.2.7
 Release:    1%{?dist}
 License:    none
 Group:      System Environment/Daemons
@@ -13,7 +13,7 @@ Provides: mlsensor = %{version}-%{release}
 
 Requires(pre): shadow-utils
 
-Requires: java-headless >= 1.8.0
+Requires: java-11-headless
 Requires: curl
 Requires: bind-utils
 
@@ -54,6 +54,10 @@ KERNEL=="ipmi*", SUBSYSTEM=="ipmi", GROUP="%{USER}"
 fi
 
 %post
+
+# make sure that jave is set to common to el7 and el9
+# alternatives --set java java-11-openjdk.x86_64
+
 systemctl daemon-reload
 echo "
 The mlsensor configuration should be generated in /etc/mlsensor with this command form (generic names to be replaced)
