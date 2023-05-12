@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+U=$(id -nu)
+G=$(id -ng)
+
+VER="9"
+NAME="mlsensor_el${VER}.sif"
+SING_CONF="el${VER}.sing"
+
+if [[ "${1}" == "sandbox" ]]; then
+    shift
+    DO_SANDBOX="--sandbox --fix-perms"
+    NAME="${NAME}_sandbox"
+fi
+[[ -e "${NAME}" ]] && rm -f "${NAME}"
+
+rm -rf $(basename ${NAME} .sif).tar
+
+## BUILD DOCKER CONT
+podman build --no-cache --rm --format docker -t $(basename ${NAME} .sif):latest -f el${VER}.cont .  || exit 1
+podman save --format docker-archive -o $(basename ${NAME} .sif).tar $(basename ${NAME} .sif):latest || exit 1
+
+## BUILD SINGULARITY
+singularity build --fakeroot ${DO_SANDBOX} "${NAME}" "${SING_CONF}" || exit 1
+
+[[ -n "${DO_SANDBOX}" ]] && sudo chown -R ${U}:${G} "${NAME}"
+sudo chown -R ${U}:${G} "${SINGULARITY_CACHEDIR:-${HOME}/.singularity/cache}"
+
+rm -rf $(basename ${NAME} .sif).tar
+

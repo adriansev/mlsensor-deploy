@@ -1,0 +1,15 @@
+FROM docker.io/almalinux/9-minimal:latest
+
+RUN \
+mkdir -p /home.hdd && \
+microdnf -y clean all && \
+microdnf -y install java-11-openjdk-headless rpm-build redhat-rpm-config \
+make gcc rpmdevtools.noarch rpmlint.noarch systemd \
+redhat-rpm-config.noarch && \
+microdnf update -y && rm -rf /var/cache/yum/*
+
+SHELL ["/usr/bin/bash", "-c"]
+ENTRYPOINT ["/usr/bin/bash", "-l"]
+
+LABEL maintainer="Adrian.Sevcenco@cern.ch"
+LABEL description="EL9 image to build MLSensor package (ALICE MonaLisa monitoring agent)"

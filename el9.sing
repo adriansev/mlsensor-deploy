@@ -1,0 +1,13 @@
+Bootstrap: docker-archive
+From: mlsensor_el9.tar
+
+%labels
+Author Adrian.Sevcenco@spacescience.ro
+Description el9 image for building MLSensor package
+
+%runscript
+#!/usr/bin/bash
+
+ARGS="${@}"
+[[ -n "${ARGS}" ]] && exec "${@}" || exec /usr/bin/bash -l
+
