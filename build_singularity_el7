@@ -1,29 +1,20 @@
 #!/usr/bin/env bash
 
-U=$(id -nu)
-G=$(id -ng)
-
 VER="7"
-NAME="mlsensor_el${VER}.sif"
+DOCKER_CONT="mlsensor_el${VER}"
+SING_NAME="el${VER}_build"
+
+DOCKER_CONF="el${VER}.cont"
 SING_CONF="el${VER}.sing"
 
-if [[ "${1}" == "sandbox" ]]; then
-    shift
-    DO_SANDBOX="--sandbox --fix-perms"
-    NAME="${NAME}_sandbox"
-fi
-[[ -e "${NAME}" ]] && rm -f "${NAME}"
-
-rm -rf $(basename ${NAME} .sif).tar
 ## BUILD DOCKER CONT
-podman build --no-cache --rm --format docker -t $(basename ${NAME} .sif):latest -f el${VER}.cont .  || exit 1
-podman save --format docker-archive -o $(basename ${NAME} .sif).tar $(basename ${NAME} .sif):latest || exit 1
+podman build --no-cache --rm --format docker -t ${DOCKER_CONT}:latest -f ${DOCKER_CONF} . || { echo "Fail to build docker image"; exit 1; }
 
-## BUILD SINGULARITY
-singularity build --fakeroot ${DO_SANDBOX} "${NAME}" "${SING_CONF}" || exit 1
+## SAVE DOCKER CONT as oci.archive
+[[ -e ${DOCKER_CONT}.tar ]] && rm -rf ${DOCKER_CONT}.tar
+podman save --format oci-archive -o ${DOCKER_CONT}.tar localhost/${DOCKER_CONT}:latest || { echo "Saving of container to local tar failed!"; exit 1; }
 
-[[ -n "${DO_SANDBOX}" ]] && sudo chown -R ${U}:${G} "${NAME}"
-sudo chown -R ${U}:${G} "${SINGULARITY_CACHEDIR:-${HOME}/.singularity/cache}"
-
-rm -rf $(basename ${NAME} .sif).tar
+[[ -e "${SING_NAME}" ]] && rm -f "${SING_NAME}"
+singularity build --fakeroot --fix-perms "${SING_NAME}" "${SING_CONF}" || { echo "Singularity build failed!"; exit 1; }
+rm -rf ${DOCKER_CONT}.tar
 

@@ -4,7 +4,7 @@ RUN \
 mkdir -p /home.hdd && \
 microdnf -y clean all && \
 microdnf -y install java-11-openjdk-headless rpm-build redhat-rpm-config \
-make gcc rpmdevtools.noarch rpmlint.noarch systemd \
+make gcc rpmdevtools.noarch rpmlint.noarch systemd rsync \
 redhat-rpm-config.noarch && \
 microdnf update -y && rm -rf /var/cache/yum/*
 

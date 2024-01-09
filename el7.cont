@@ -5,7 +5,7 @@ mkdir -p /home.hdd && \
 yum -y clean all && \
 yum fs filter languages en && yum fs filter documentation && \
 yum install -y java-11-openjdk-headless rpm-build redhat-rpm-config \
-make gcc rpmdevtools.noarch rpmdeplint.noarch \
+make gcc rpmdevtools.noarch rpmdeplint.noarch rsync \
 redhat-rpm-config.noarch preproc-rpmspec.noarch && \
 rpm --import https://packages.endpointdev.com/endpoint-rpmsign-7.pub && \
 yum install -y https://packages.endpointdev.com/rhel/7/os/x86_64/endpoint-repo.x86_64.rpm && \

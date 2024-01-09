@@ -1,13 +1,7 @@
-Bootstrap: docker-archive
+Bootstrap: oci-archive
 From: mlsensor_el7.tar
 
 %labels
 Author Adrian.Sevcenco@spacescience.ro
 Description el7 image for building MLSensor package
-
-%runscript
-#!/usr/bin/bash
-
-ARGS="${@}"
-[[ -n "${ARGS}" ]] && exec "${@}" || exec /usr/bin/bash -l
 

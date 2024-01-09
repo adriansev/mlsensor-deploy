@@ -1,4 +1,4 @@
-Bootstrap: docker-archive
+Bootstrap: oci-archive
 From: mlsensor_el9.tar
 
 %labels
