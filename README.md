@@ -1,7 +1,2 @@
-# MLSensor
-MLSensor (MonALISA agent) deployment for ALICE storage
-
-Upstream (distribution) link: http://monalisa.cern.ch/MLSensor/
-
-
+MOVED TO https://gitlab.cern.ch/jalien/mlsensor_service
 
